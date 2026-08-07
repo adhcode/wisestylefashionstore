@@ -1,26 +1,35 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf7f1;
+  --foreground: #241b2e;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* WiseStyle brand palette — deep aubergine + gold thread accent */
+  --color-plum-dark: #2e1a38;
+  --color-plum: #3d2645;
+  --color-plum-light: #7b4b8a;
+  --color-gold: #c9973e;
+  --color-gold-light: #e4c377;
+  --color-cream: #faf7f1;
+  --color-panel: #f7f2e8;
+  --color-ink: #241b2e;
+  --color-slate: #6b6470;
+  --color-line: #e7e1d8;
+  --color-emerald: #1e8a5f;
+  --color-amber: #c77f1a;
+  --color-gray: #9c9591;
+  --color-rose: #b23a48;
+
+  --font-serif: Georgia, "Times New Roman", serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: system-ui, -apple-system, sans-serif;
 }

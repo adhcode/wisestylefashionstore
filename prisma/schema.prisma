@@ -1,0 +1,127 @@
+// WiseStyle data model.
+//
+// Role (User.role) and Payment.type are plain Strings, not Prisma enums:
+// SQLite has no native enum support, so the validated union types live in
+// the domain layer (src/domain/entities.ts) and are enforced by zod at the
+// service boundary instead.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           String  @id @default(cuid())
+  email        String  @unique
+  passwordHash String
+  name         String
+  role         String // "ADMIN" | "MANAGER" | "TAILOR"
+  tailorId     String? @unique
+  tailor       Tailor? @relation(fields: [tailorId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Customer {
+  id          String @id @default(cuid())
+  customerNumber String @unique
+
+  name             String
+  gender           String
+  phone            String
+  whatsapp         String?
+  email            String?
+  address          String?
+  state            String?
+  city             String?
+  occupation       String?
+  preferredStyle   String?
+  preferredFabric  String?
+  preferredColours String?
+  occasion         String?
+  interests        String?
+  returning        Boolean @default(false)
+  preferredStyleImage String?
+
+  jobs Job[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tailor {
+  id           String @id @default(cuid())
+  tailorNumber String @unique
+
+  name       String
+  phone      String?
+  address    String?
+  dateJoined DateTime?
+  rating     Int       @default(5)
+  notes      String?
+
+  jobs         Job[]
+  wagePayments WagePayment[]
+  user         User?
+
+  createdAt DateTime @default(now())
+}
+
+model WagePayment {
+  id        String   @id @default(cuid())
+  tailorId  String
+  tailor    Tailor   @relation(fields: [tailorId], references: [id], onDelete: Cascade)
+  weekStart DateTime
+  amount    Float
+  note      String?
+  datePaid  DateTime @default(now())
+}
+
+model Job {
+  id        String @id @default(cuid())
+  jobNumber String @unique
+
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id])
+
+  style      String
+  styleOther String?
+
+  dateReceived         DateTime?
+  startDate            DateTime?
+  completionDate       DateTime?
+  actualCompletionDate DateTime?
+
+  contractPrice Float
+  depositPaid   Float  @default(0)
+  materials     String // JSON-encoded MaterialsState (see src/domain/entities.ts)
+
+  tailorId String?
+  tailor   Tailor? @relation(fields: [tailorId], references: [id])
+
+  progress Int     @default(0)
+  notes    String?
+
+  payments Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Payment {
+  id     String @id @default(cuid())
+  jobId  String
+  job    Job    @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  date   DateTime
+  amount Float
+  method String?
+  note   String?
+  type   String // "payment" | "refund"
+
+  createdAt DateTime @default(now())
+}
