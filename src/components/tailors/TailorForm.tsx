@@ -51,45 +51,80 @@ export function TailorForm({ initial, onDone, onCancel }: { initial: Tailor | nu
   };
 
   return (
-    <div>
+    <div className="max-h-[70vh] overflow-y-auto px-1">
       <ErrorBanner messages={errors} />
+      
       {initial && (
-        <p className="text-xs mb-3 text-slate">
-          Weekly wage payments are tracked separately — use the &ldquo;Wages&rdquo; button on this tailor&apos;s card after saving.
-        </p>
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <strong>Note:</strong> Weekly wage payments are tracked separately — use the "Wages" button on this tailor's card after saving.
+          </p>
+        </div>
       )}
+      
       <Field label="Tailor Name *">
-        <input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} />
+        <input 
+          className={inputCls} 
+          value={form.name} 
+          onChange={(e) => set("name", e.target.value)}
+          placeholder="Enter tailor's full name"
+        />
       </Field>
-      <div className="grid grid-cols-2 gap-x-4">
+      
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <Field label="Phone Number">
-          <input className={inputCls} value={form.phone ?? ""} onChange={(e) => set("phone", e.target.value)} />
+          <input 
+            className={inputCls} 
+            value={form.phone ?? ""} 
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="e.g., 08012345678"
+          />
         </Field>
         <Field label="Date Joined">
-          <input type="date" className={inputCls} value={form.dateJoined ?? ""} onChange={(e) => set("dateJoined", e.target.value)} />
+          <input 
+            type="date" 
+            className={inputCls} 
+            value={form.dateJoined ?? ""} 
+            onChange={(e) => set("dateJoined", e.target.value)} 
+          />
         </Field>
       </div>
+      
       <Field label="Address">
-        <input className={inputCls} value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} />
+        <input 
+          className={inputCls} 
+          value={form.address ?? ""} 
+          onChange={(e) => set("address", e.target.value)}
+          placeholder="Enter residential address"
+        />
       </Field>
-      <Field label={`Performance Rating: ${form.rating} / 5`}>
-        <input type="range" min="1" max="5" value={form.rating} onChange={(e) => set("rating", Number(e.target.value))} className="w-full" />
-      </Field>
+      
       <Field label="Notes">
-        <textarea rows={2} className={inputCls} value={form.notes ?? ""} onChange={(e) => set("notes", e.target.value)} />
+        <textarea 
+          rows={3} 
+          className={`${inputCls} resize-none`} 
+          value={form.notes ?? ""} 
+          onChange={(e) => set("notes", e.target.value)}
+          placeholder="Add any additional notes about this tailor..."
+        />
       </Field>
-      <div className="flex justify-end gap-2 pt-3 border-t border-line">
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded text-sm font-semibold text-slate">
+      
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
+        <button 
+          type="button" 
+          onClick={onCancel}
+          disabled={pending}
+          className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+        >
           Cancel
         </button>
         <button
           type="button"
           onClick={submit}
           disabled={pending}
-          className="px-4 py-2 rounded text-sm font-semibold text-white disabled:opacity-60"
-          style={{ backgroundColor: "#3D2645" }}
+          className="px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors disabled:opacity-60 shadow-sm"
         >
-          {pending ? "Saving…" : "Save Tailor"}
+          {pending ? "Saving…" : initial ? "Update Tailor" : "Save Tailor"}
         </button>
       </div>
     </div>

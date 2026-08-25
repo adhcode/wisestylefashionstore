@@ -23,6 +23,8 @@ function toDomain(row: CustomerModel): Customer {
     interests: row.interests,
     returning: row.returning,
     preferredStyleImage: row.preferredStyleImage,
+    measurements: row.measurements ? JSON.parse(row.measurements) : null,
+    referrerId: row.referrerId,
   };
 }
 
@@ -40,13 +42,23 @@ export const customerRepository = {
   async create(input: CustomerInput): Promise<Customer> {
     const count = await prisma.customer.count();
     const row = await prisma.customer.create({
-      data: { ...input, customerNumber: "CU-" + pad(count + 1) },
+      data: { 
+        ...input, 
+        customerNumber: "CU-" + pad(count + 1),
+        measurements: input.measurements ? JSON.stringify(input.measurements) : null,
+      },
     });
     return toDomain(row);
   },
 
   async update(id: string, input: CustomerInput): Promise<Customer> {
-    const row = await prisma.customer.update({ where: { id }, data: input });
+    const row = await prisma.customer.update({ 
+      where: { id }, 
+      data: {
+        ...input,
+        measurements: input.measurements ? JSON.stringify(input.measurements) : null,
+      },
+    });
     return toDomain(row);
   },
 

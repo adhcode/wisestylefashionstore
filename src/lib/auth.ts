@@ -5,6 +5,7 @@ import { userRepository } from "@/data/user-repository";
 import { loginSchema } from "@/lib/validation";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  secret: process.env.AUTH_SECRET,
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [

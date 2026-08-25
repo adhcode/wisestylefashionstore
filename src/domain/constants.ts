@@ -60,3 +60,16 @@ export const BANK_DETAILS = {
   accountName: "Wisebuy Nigeria Limited",
   accountNumber: "4010835116",
 };
+
+// Measurement templates for different styles
+export const MEASUREMENT_TEMPLATES: Record<string, string[]> = {
+  "Full Agbada": ["Shoulder", "Chest", "Waist", "Length", "Sleeve", "Cap", "Trouser Length", "Trouser Waist", "Hip"],
+  "Yahoo Agbada": ["Shoulder", "Chest", "Waist", "Length", "Sleeve", "Cap", "Trouser Length", "Trouser Waist"],
+  "Babariga": ["Shoulder", "Chest", "Waist", "Length", "Sleeve", "Cap"],
+  "Dansiki": ["Shoulder", "Chest", "Waist", "Length", "Sleeve"],
+  "Pant Trouser": ["Waist", "Hip", "Trouser Length", "Thigh", "Ankle"],
+  "Native Wear": ["Shoulder", "Chest", "Waist", "Length", "Sleeve"],
+  "Eso-Ebi Wear": ["Shoulder", "Chest", "Waist", "Length", "Sleeve", "Hip"],
+  "Corporate Shirt": ["Neck", "Shoulder", "Chest", "Waist", "Sleeve", "Length"],
+  "Others": ["Shoulder", "Chest", "Waist", "Length", "Sleeve"], // Default measurements
+};

@@ -17,9 +17,12 @@ type PaymentRow = JobRow["payments"][number];
 
 function parseMaterials(raw: string): MaterialsState {
   try {
-    return { ...emptyMaterials(), ...(JSON.parse(raw) as Partial<MaterialsState>) };
+    const parsed = JSON.parse(raw);
+    // Return parsed materials as-is since they can be dynamic keys now
+    return parsed as MaterialsState;
   } catch {
-    return emptyMaterials();
+    // Return empty object if parse fails
+    return {};
   }
 }
 
@@ -54,7 +57,9 @@ function toDomain(row: JobRow): Job {
     tailorName: row.tailor?.name ?? null,
     progress: row.progress,
     notes: row.notes,
+    satisfactionRating: row.satisfactionRating,
     payments: row.payments.map(paymentToDomain),
+    measurements: row.measurements ? JSON.parse(row.measurements) : null,
   };
 }
 
@@ -87,6 +92,7 @@ export const jobRepository = {
         contractPrice: input.contractPrice,
         depositPaid: input.depositPaid,
         materials: JSON.stringify(input.materials),
+        measurements: input.measurements ? JSON.stringify(input.measurements) : null,
         tailorId: input.tailorId,
         progress: input.progress,
         notes: input.notes,
@@ -111,6 +117,7 @@ export const jobRepository = {
         contractPrice: input.contractPrice,
         depositPaid: input.depositPaid,
         materials: JSON.stringify(input.materials),
+        measurements: input.measurements ? JSON.stringify(input.measurements) : null,
         tailorId: input.tailorId,
         progress: input.progress,
         notes: input.notes,
@@ -145,5 +152,15 @@ export const jobRepository = {
       },
     });
     return paymentToDomain(row);
+  },
+
+  async updateSatisfactionRating(id: string, rating: number): Promise<Job> {
+    await prisma.job.update({
+      where: { id },
+      data: { satisfactionRating: rating },
+    });
+    const updated = await rawFindById(id);
+    if (!updated) throw new Error("Job not found after update");
+    return toDomain(updated);
   },
 };

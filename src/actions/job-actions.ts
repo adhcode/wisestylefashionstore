@@ -25,6 +25,7 @@ export async function updateJob(id: string, input: unknown): Promise<ActionResul
   return runAction(async () => {
     const job = await jobService.update(id, parsed.data);
     revalidatePath("/jobs");
+    revalidatePath(`/jobs/${id}`);
     revalidatePath("/dashboard");
     return job;
   });
@@ -58,5 +59,20 @@ export async function addJobPayment(jobId: string, input: unknown): Promise<Acti
     revalidatePath("/customers");
     revalidatePath("/dashboard");
     return payment;
+  });
+}
+
+export async function updateJobSatisfactionRating(id: string, rating: number): Promise<ActionResult<Job>> {
+  if (rating < 1 || rating > 5) {
+    return { success: false, error: "Rating must be between 1 and 5" };
+  }
+
+  return runAction(async () => {
+    const job = await jobService.updateSatisfactionRating(id, rating);
+    revalidatePath("/jobs");
+    revalidatePath(`/jobs/${id}`);
+    revalidatePath("/tailors");
+    revalidatePath("/dashboard");
+    return job;
   });
 }

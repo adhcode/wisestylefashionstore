@@ -1,34 +1,34 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
-import { Plus, Search, Pencil, Trash2, Eye, FileText } from "lucide-react";
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Plus, Search } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
-import { MeasureBar } from "@/components/ui/MeasureBar";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Select } from "@/components/ui/Select";
 import { JobForm } from "./JobForm";
-import { deleteJob } from "@/actions/job-actions";
 import { jobDerived } from "@/domain/calculations";
 import { formatCurrency, styleLabelOf } from "@/domain/format";
 import { MONTHS, STYLES } from "@/domain/constants";
-import type { Customer, Job, JobStatus, Tailor } from "@/domain/entities";
+import type { Customer, Job, JobStatus, MaterialType, Tailor } from "@/domain/entities";
 
 interface JobsTableProps {
   jobs: Job[];
   customers: Customer[];
   tailors: Tailor[];
+  materialTypes: MaterialType[];
   canManage: boolean;
+  isAdmin: boolean;
 }
 
-export function JobsTable({ jobs, customers, tailors, canManage }: JobsTableProps) {
+export function JobsTable({ jobs, customers, tailors, materialTypes, canManage, isAdmin }: JobsTableProps) {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [styleFilter, setStyleFilter] = useState("All");
   const [monthFilter, setMonthFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<JobStatus | "All">("All");
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<Job | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [customersList, setCustomersList] = useState<Customer[]>(customers);
 
   const filtered = useMemo(() => {
     return jobs
@@ -41,7 +41,7 @@ export function JobsTable({ jobs, customers, tailors, canManage }: JobsTableProp
         if (statusFilter !== "All" && jobDerived(j).status !== statusFilter) return false;
         if (search) {
           const q = search.toLowerCase();
-          const hay = `${j.customerName} ${j.jobNumber} ${j.style} ${j.tailorName ?? ""}`.toLowerCase();
+          const hay = `${j.customerName} ${j.style} ${j.tailorName ?? ""}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
@@ -49,171 +49,146 @@ export function JobsTable({ jobs, customers, tailors, canManage }: JobsTableProp
       .sort((a, b) => (b.dateReceived ?? "").localeCompare(a.dateReceived ?? ""));
   }, [jobs, styleFilter, monthFilter, statusFilter, search]);
 
-  const confirmDelete = (id: string) => {
-    startTransition(async () => {
-      await deleteJob(id);
-      setDeletingId(null);
-    });
-  };
-
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-ink font-serif">Jobs</h1>
-          <p className="text-sm text-slate">{jobs.length} job(s)</p>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">All Jobs</h1>
+        <p className="text-sm text-gray-600">{jobs.length} job{jobs.length !== 1 ? "s" : ""} in total</p>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-xl border border-gray-200 p-6 mb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div className="flex-1 w-full sm:max-w-md">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                placeholder="Search customer, style, tailor…"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+          {canManage && (
+            <button
+              onClick={() => setShowForm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+              <Plus size={18} />
+              New Job
+            </button>
+          )}
         </div>
-        {canManage && (
-          <button
-            onClick={() => {
-              setEditing(null);
-              setShowForm(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2 rounded text-sm font-semibold text-white"
-            style={{ backgroundColor: "#3D2645" }}
-          >
-            <Plus size={16} /> New Job
-          </button>
+        
+        <div className="flex flex-wrap gap-3">
+          <Select
+            value={styleFilter}
+            onChange={setStyleFilter}
+            options={[
+              { value: "All", label: "All styles" },
+              ...STYLES.map((s) => ({ value: s, label: s })),
+            ]}
+            placeholder="All styles"
+            searchPlaceholder="Search styles…"
+            className="w-48"
+          />
+          <Select
+            value={monthFilter}
+            onChange={setMonthFilter}
+            options={[
+              { value: "All", label: "All months" },
+              ...MONTHS.map((m) => ({ value: m, label: m })),
+            ]}
+            placeholder="All months"
+            searchPlaceholder="Search months…"
+            className="w-48"
+          />
+          <Select
+            value={statusFilter}
+            onChange={(value) => setStatusFilter(value as JobStatus | "All")}
+            options={[
+              { value: "All", label: "All statuses" },
+              { value: "Pending", label: "Pending" },
+              { value: "In Progress", label: "In Progress" },
+              { value: "Completed", label: "Completed" },
+            ]}
+            placeholder="All statuses"
+            searchPlaceholder="Search statuses…"
+            className="w-48"
+          />
+        </div>
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-200">
+                {["Customer", "Style", "Received", "Contract", "Tailor", "Status"].map((h) => (
+                  <th key={h} className="text-left px-6 py-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-sm text-gray-500">
+                    No jobs match your filters yet.
+                  </td>
+                </tr>
+              )}
+              {filtered.map((j) => {
+                const d = jobDerived(j);
+                return (
+                  <tr
+                    key={j.id}
+                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => router.push(`/jobs/${j.id}`)}
+                  >
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">{j.customerName}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{styleLabelOf(j)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{j.dateReceived}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-900">{formatCurrency(d.contractPrice)}</td>
+                    <td className="px-6 py-4 text-sm text-gray-700">{j.tailorName ?? "—"}</td>
+                    <td className="px-6 py-4">
+                      <StatusBadge status={d.status} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination Footer */}
+        {filtered.length > 0 && (
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <p className="text-sm text-gray-600">
+              Showing {filtered.length} of {jobs.length} job{jobs.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         )}
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="flex items-center gap-2 bg-white border border-line rounded px-3 py-2">
-          <Search size={15} color="#6B6470" />
-          <input
-            placeholder="Search customer, job #, tailor…"
-            className="text-sm outline-none border-none"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <select className="border border-line rounded px-3 py-2 text-sm bg-white" value={styleFilter} onChange={(e) => setStyleFilter(e.target.value)}>
-          <option value="All">All styles</option>
-          {STYLES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <select className="border border-line rounded px-3 py-2 text-sm bg-white" value={monthFilter} onChange={(e) => setMonthFilter(e.target.value)}>
-          <option value="All">All months</option>
-          {MONTHS.map((m) => (
-            <option key={m} value={m}>
-              {m}
-            </option>
-          ))}
-        </select>
-        <select
-          className="border border-line rounded px-3 py-2 text-sm bg-white"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as JobStatus | "All")}
-        >
-          <option value="All">All statuses</option>
-          <option value="Pending">Pending</option>
-          <option value="In Progress">In Progress</option>
-          <option value="Completed">Completed</option>
-        </select>
-      </div>
-
-      <div className="bg-white rounded-lg border border-line overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr style={{ backgroundColor: "#F7F2E8" }}>
-              {["Job #", "Customer", "Style", "Received", "Contract", "Progress", "Tailor", "Status", ""].map((h) => (
-                <th key={h} className="text-left px-3 py-2 font-semibold text-slate">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={9} className="text-center py-8 text-slate">
-                  No jobs match your filters yet.
-                </td>
-              </tr>
-            )}
-            {filtered.map((j) => {
-              const d = jobDerived(j);
-              return (
-                <tr key={j.id} className="border-t border-line">
-                  <td className="px-3 py-2 font-semibold">{j.jobNumber}</td>
-                  <td className="px-3 py-2">{j.customerName}</td>
-                  <td className="px-3 py-2">{styleLabelOf(j)}</td>
-                  <td className="px-3 py-2">{j.dateReceived}</td>
-                  <td className="px-3 py-2">{formatCurrency(d.contractPrice)}</td>
-                  <td className="px-3 py-2" style={{ width: 140 }}>
-                    <MeasureBar value={d.progress} />
-                  </td>
-                  <td className="px-3 py-2">{j.tailorName ?? "—"}</td>
-                  <td className="px-3 py-2">
-                    <StatusBadge status={d.status} />
-                  </td>
-                  <td className="px-3 py-2">
-                    <div className="flex gap-2">
-                      <Link href={`/jobs/${j.id}`} className="p-1 rounded hover:bg-gray-100" title="View details">
-                        <Eye size={15} color="#3D2645" />
-                      </Link>
-                      {canManage && (
-                        <button
-                          onClick={() => {
-                            setEditing(j);
-                            setShowForm(true);
-                          }}
-                          className="p-1 rounded hover:bg-gray-100"
-                          title="Edit"
-                        >
-                          <Pencil size={15} color="#6B6470" />
-                        </button>
-                      )}
-                      {canManage && (
-                        <a href={`/api/documents/invoice/${j.id}`} className="p-1 rounded hover:bg-gray-100" title="Download invoice">
-                          <FileText size={15} color="#C9973E" />
-                        </a>
-                      )}
-                      {canManage && (
-                        <button onClick={() => setDeletingId(j.id)} className="p-1 rounded hover:bg-gray-100" title="Delete">
-                          <Trash2 size={15} color="#B23A48" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
+      {/* New Job Modal */}
       {showForm && (
-        <Modal title={editing ? "Edit Job" : "New Job"} onClose={() => setShowForm(false)} wide>
+        <Modal title="New Job" onClose={() => setShowForm(false)} wide>
           <JobForm
-            initial={editing}
-            customers={customers}
+            initial={null}
+            customers={customersList}
             tailors={tailors}
+            materialTypes={materialTypes}
             onDone={() => setShowForm(false)}
             onCancel={() => setShowForm(false)}
+            onCustomerAdded={(newCustomer) => {
+              setCustomersList((prev) => [...prev, newCustomer]);
+            }}
           />
-        </Modal>
-      )}
-
-      {deletingId && (
-        <Modal title="Delete Job" onClose={() => setDeletingId(null)}>
-          <p className="text-sm text-ink mb-4">Are you sure you want to delete this job? This cannot be undone.</p>
-          <div className="flex justify-end gap-2">
-            <button onClick={() => setDeletingId(null)} className="px-4 py-2 rounded text-sm font-semibold text-slate">
-              Cancel
-            </button>
-            <button
-              onClick={() => confirmDelete(deletingId)}
-              disabled={pending}
-              className="px-4 py-2 rounded text-sm font-semibold text-white disabled:opacity-60"
-              style={{ backgroundColor: "#B23A48" }}
-            >
-              {pending ? "Deleting…" : "Delete"}
-            </button>
-          </div>
         </Modal>
       )}
     </div>

@@ -51,4 +51,9 @@ export const jobService = {
     await requireRole(["ADMIN", "MANAGER"]);
     return jobRepository.addPayment(jobId, input);
   },
+
+  async updateSatisfactionRating(id: string, rating: number): Promise<Job> {
+    await requireRole(["ADMIN", "MANAGER"]);
+    return jobRepository.updateSatisfactionRating(id, rating);
+  },
 };

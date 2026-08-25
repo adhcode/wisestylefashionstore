@@ -33,6 +33,8 @@ export const customerSchema = z.object({
   interests: optionalText,
   returning: z.boolean().default(false),
   preferredStyleImage: optionalText,
+  measurements: z.record(z.string(), z.number()).nullable().default(null),
+  referrerId: optionalText,
 });
 
 export const tailorSchema = z.object({
@@ -57,12 +59,8 @@ const materialEntrySchema = z.object({
   cost: z.number().min(0),
 });
 
-export const materialsSchema = z.object(
-  Object.fromEntries(MATERIAL_KEYS.map((key) => [key, materialEntrySchema])) as Record<
-    (typeof MATERIAL_KEYS)[number],
-    typeof materialEntrySchema
-  >,
-);
+// Materials are now dynamic from database, so accept any string key
+export const materialsSchema = z.record(z.string(), materialEntrySchema);
 
 export const jobSchema = z.object({
   customerId: requiredText,
@@ -78,6 +76,7 @@ export const jobSchema = z.object({
   tailorId: optionalText,
   progress: z.number().int().min(0).max(100).default(0),
   notes: optionalText,
+  measurements: z.record(z.string(), z.number()).nullable().default(null),
 });
 
 export const paymentSchema = z.object({
@@ -94,4 +93,15 @@ export const userCreateSchema = z.object({
   role: z.enum(ROLES),
   password: z.string().min(8, "Password must be at least 8 characters"),
   tailorId: optionalText,
+});
+
+export const referrerSchema = z.object({
+  name: requiredText,
+  phone: requiredText,
+  email: optionalText,
+  address: optionalText,
+  bankName: optionalText,
+  accountName: optionalText,
+  accountNumber: optionalText,
+  notes: optionalText,
 });

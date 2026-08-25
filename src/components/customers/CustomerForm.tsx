@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { Upload, Image as ImageIcon, Ruler } from "lucide-react";
 import { Field, inputCls } from "@/components/ui/Field";
 import { ErrorBanner } from "@/components/ui/ErrorBanner";
+import { MeasurementsSection } from "@/components/jobs/MeasurementsSection";
 import { createCustomer, updateCustomer } from "@/actions/customer-actions";
 import { resizeImageFile } from "@/lib/resize-image";
-import type { Customer, CustomerInput } from "@/domain/entities";
+import type { Customer, CustomerInput, Measurements, Referrer } from "@/domain/entities";
 
 function toFormState(customer: Customer | null): CustomerInput {
   if (customer) {
@@ -27,6 +28,8 @@ function toFormState(customer: Customer | null): CustomerInput {
       interests: customer.interests,
       returning: customer.returning,
       preferredStyleImage: customer.preferredStyleImage,
+      measurements: customer.measurements || {},
+      referrerId: customer.referrerId,
     };
   }
   return {
@@ -46,15 +49,19 @@ function toFormState(customer: Customer | null): CustomerInput {
     interests: null,
     returning: false,
     preferredStyleImage: null,
+    measurements: {},
+    referrerId: null,
   };
 }
 
 export function CustomerForm({
   initial,
+  referrers,
   onDone,
   onCancel,
 }: {
   initial: Customer | null;
+  referrers: Referrer[];
   onDone: () => void;
   onCancel: () => void;
 }) {
@@ -66,6 +73,21 @@ export function CustomerForm({
 
   const set = <K extends keyof CustomerInput>(key: K, value: CustomerInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  const setMeasurement = (field: string, value: number) =>
+    setForm((f) => ({ ...f, measurements: { ...((f.measurements as Measurements) || {}), [field]: value } }));
+
+  const addCustomMeasurementField = (fieldName: string) => {
+    setForm((f) => ({ ...f, measurements: { ...((f.measurements as Measurements) || {}), [fieldName]: 0 } }));
+  };
+
+  const removeMeasurementField = (fieldName: string) => {
+    setForm((f) => {
+      const newMeasurements = { ...((f.measurements as Measurements) || {}) };
+      delete newMeasurements[fieldName];
+      return { ...f, measurements: newMeasurements };
+    });
+  };
 
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -108,45 +130,59 @@ export function CustomerForm({
   };
 
   return (
-    <div>
+    <div className="max-h-[80vh] overflow-y-auto px-1">
       <ErrorBanner messages={errors} />
-      <Field label="Preferred Style Image (optional)">
-        <div className="flex items-center gap-3">
+      
+      {/* Style Image Upload */}
+      <div className="mb-6">
+        <label className="block text-sm font-medium mb-2 text-gray-700">Preferred Style Image (optional)</label>
+        <div className="flex items-center gap-4">
           {form.preferredStyleImage ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={form.preferredStyleImage}
               alt="Preferred style"
-              className="rounded border border-line object-cover"
-              style={{ width: 72, height: 72 }}
+              className="rounded-lg border-2 border-gray-200 object-cover shadow-sm"
+              style={{ width: 80, height: 80 }}
             />
           ) : (
-            <div className="rounded border border-line flex items-center justify-center" style={{ width: 72, height: 72, backgroundColor: "#F7F2E8" }}>
-              <ImageIcon size={22} color="#6B6470" />
+            <div className="rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50" style={{ width: 80, height: 80 }}>
+              <ImageIcon size={24} className="text-gray-400" />
             </div>
           )}
           <div>
-            <label className="inline-flex items-center gap-2 px-3 py-2 rounded text-sm font-semibold cursor-pointer" style={{ backgroundColor: "#F7F2E8", color: "#241B2E" }}>
-              <Upload size={14} />
-              {imageBusy ? "Processing…" : form.preferredStyleImage ? "Replace image" : "Upload image"}
-              <input type="file" accept="image/*" className="hidden" onChange={handleImage} />
+            <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium cursor-pointer bg-purple-600 hover:bg-purple-700 text-white transition-colors shadow-sm">
+              <Upload size={16} />
+              {imageBusy ? "Processing…" : form.preferredStyleImage ? "Replace Image" : "Upload Image"}
+              <input type="file" accept="image/*" className="hidden" onChange={handleImage} disabled={imageBusy} />
             </label>
             {form.preferredStyleImage && (
-              <button type="button" onClick={() => set("preferredStyleImage", null)} className="ml-2 text-sm underline" style={{ color: "#B23A48" }}>
+              <button 
+                type="button" 
+                onClick={() => set("preferredStyleImage", null)} 
+                className="ml-3 text-sm text-red-600 hover:text-red-700 font-medium transition-colors"
+              >
                 Remove
               </button>
             )}
             {imageError && (
-              <p className="text-xs mt-1" style={{ color: "#B23A48" }}>
+              <p className="text-xs mt-2 text-red-600">
                 {imageError}
               </p>
             )}
           </div>
         </div>
-      </Field>
-      <div className="grid grid-cols-2 gap-x-4">
+      </div>
+
+      {/* Basic Information */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <Field label="Full Name *">
-          <input className={inputCls} value={form.name} onChange={(e) => set("name", e.target.value)} />
+          <input 
+            className={inputCls} 
+            value={form.name} 
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="Enter full name"
+          />
         </Field>
         <Field label="Gender">
           <select className={inputCls} value={form.gender} onChange={(e) => set("gender", e.target.value)}>
@@ -154,66 +190,196 @@ export function CustomerForm({
             <option>Male</option>
           </select>
         </Field>
+      </div>
+
+      {/* Contact Information */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <Field label="Phone Number *">
-          <input className={inputCls} value={form.phone} onChange={(e) => set("phone", e.target.value)} />
+          <input 
+            className={inputCls} 
+            value={form.phone} 
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="e.g., 08012345678"
+          />
         </Field>
         <Field label="WhatsApp Number">
-          <input className={inputCls} value={form.whatsapp ?? ""} onChange={(e) => set("whatsapp", e.target.value)} />
+          <input 
+            className={inputCls} 
+            value={form.whatsapp ?? ""} 
+            onChange={(e) => set("whatsapp", e.target.value)}
+            placeholder="e.g., 08012345678"
+          />
         </Field>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <Field label="Email Address">
-          <input type="email" className={inputCls} value={form.email ?? ""} onChange={(e) => set("email", e.target.value)} />
+          <input 
+            type="email" 
+            className={inputCls} 
+            value={form.email ?? ""} 
+            onChange={(e) => set("email", e.target.value)}
+            placeholder="e.g., customer@example.com"
+          />
         </Field>
         <Field label="Occupation">
-          <input className={inputCls} value={form.occupation ?? ""} onChange={(e) => set("occupation", e.target.value)} />
+          <input 
+            className={inputCls} 
+            value={form.occupation ?? ""} 
+            onChange={(e) => set("occupation", e.target.value)}
+            placeholder="e.g., Business Owner"
+          />
         </Field>
+      </div>
+
+      {/* Location */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <Field label="State">
-          <input className={inputCls} value={form.state ?? ""} onChange={(e) => set("state", e.target.value)} />
+          <input 
+            className={inputCls} 
+            value={form.state ?? ""} 
+            onChange={(e) => set("state", e.target.value)}
+            placeholder="e.g., Lagos"
+          />
         </Field>
         <Field label="City">
-          <input className={inputCls} value={form.city ?? ""} onChange={(e) => set("city", e.target.value)} />
+          <input 
+            className={inputCls} 
+            value={form.city ?? ""} 
+            onChange={(e) => set("city", e.target.value)}
+            placeholder="e.g., Ikeja"
+          />
         </Field>
       </div>
+
       <Field label="Residential Address">
-        <textarea className={inputCls} rows={2} value={form.address ?? ""} onChange={(e) => set("address", e.target.value)} />
-      </Field>
-      <div className="grid grid-cols-2 gap-x-4">
-        <Field label="Preferred Style">
-          <input className={inputCls} value={form.preferredStyle ?? ""} onChange={(e) => set("preferredStyle", e.target.value)} />
-        </Field>
-        <Field label="Preferred Fabric">
-          <input className={inputCls} value={form.preferredFabric ?? ""} onChange={(e) => set("preferredFabric", e.target.value)} />
-        </Field>
-        <Field label="Preferred Colours">
-          <input className={inputCls} value={form.preferredColours ?? ""} onChange={(e) => set("preferredColours", e.target.value)} />
-        </Field>
-        <Field label="Occasion">
-          <input className={inputCls} value={form.occasion ?? ""} onChange={(e) => set("occasion", e.target.value)} />
-        </Field>
-      </div>
-      <Field label="Customer Interests">
-        <input
-          className={inputCls}
-          placeholder="e.g. weddings, corporate wear, ready-to-wear"
-          value={form.interests ?? ""}
-          onChange={(e) => set("interests", e.target.value)}
+        <textarea 
+          className={`${inputCls} resize-none`} 
+          rows={2} 
+          value={form.address ?? ""} 
+          onChange={(e) => set("address", e.target.value)}
+          placeholder="Enter full address"
         />
       </Field>
-      <label className="flex items-center gap-2 mb-4 text-sm text-ink">
-        <input type="checkbox" checked={form.returning} onChange={(e) => set("returning", e.target.checked)} />
-        Returning customer
-      </label>
-      <div className="flex justify-end gap-2 pt-3 border-t border-line">
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded text-sm font-semibold text-slate">
+
+      {/* Referral */}
+      <Field label="Referred By (Optional)">
+        <select 
+          className={inputCls} 
+          value={form.referrerId ?? ""} 
+          onChange={(e) => set("referrerId", e.target.value || null)}
+        >
+          <option value="">No referrer</option>
+          {referrers.map((r) => (
+            <option key={r.id} value={r.id}>
+              {r.name} ({r.referrerNumber})
+            </option>
+          ))}
+        </select>
+      </Field>
+
+      {/* Preferences */}
+      <div className="mb-6 pb-6 border-b border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-900 mb-4">Style Preferences</h4>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Preferred Style">
+            <input 
+              className={inputCls} 
+              value={form.preferredStyle ?? ""} 
+              onChange={(e) => set("preferredStyle", e.target.value)}
+              placeholder="e.g., Kaftan, Agbada"
+            />
+          </Field>
+          <Field label="Preferred Fabric">
+            <input 
+              className={inputCls} 
+              value={form.preferredFabric ?? ""} 
+              onChange={(e) => set("preferredFabric", e.target.value)}
+              placeholder="e.g., Lace, Senator"
+            />
+          </Field>
+          <Field label="Preferred Colours">
+            <input 
+              className={inputCls} 
+              value={form.preferredColours ?? ""} 
+              onChange={(e) => set("preferredColours", e.target.value)}
+              placeholder="e.g., Blue, Gold"
+            />
+          </Field>
+          <Field label="Occasion">
+            <input 
+              className={inputCls} 
+              value={form.occasion ?? ""} 
+              onChange={(e) => set("occasion", e.target.value)}
+              placeholder="e.g., Wedding, Corporate"
+            />
+          </Field>
+        </div>
+        <div className="mt-4">
+          <Field label="Customer Interests">
+            <input
+              className={inputCls}
+              placeholder="e.g., weddings, corporate wear, ready-to-wear"
+              value={form.interests ?? ""}
+              onChange={(e) => set("interests", e.target.value)}
+            />
+          </Field>
+        </div>
+      </div>
+
+      {/* Measurements Section */}
+      <div className="mb-6 pb-6 border-b border-gray-200">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center">
+            <Ruler size={16} className="text-purple-600" />
+          </div>
+          <h4 className="text-sm font-semibold text-gray-900">Default Measurements</h4>
+        </div>
+        <p className="text-sm text-gray-600 mb-4">
+          These measurements will be used as defaults when creating jobs for this customer.
+        </p>
+        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <MeasurementsSection
+            measurementFields={[]}
+            measurements={(form.measurements as Measurements) || {}}
+            onMeasurementChange={setMeasurement}
+            onAddCustomField={addCustomMeasurementField}
+            onRemoveField={removeMeasurementField}
+            allowCustomFields={true}
+          />
+        </div>
+      </div>
+
+      {/* Customer Status */}
+      <div className="mb-6">
+        <label className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
+          <input 
+            type="checkbox" 
+            checked={form.returning} 
+            onChange={(e) => set("returning", e.target.checked)}
+            className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+          />
+          <span className="text-sm font-medium text-gray-900">Mark as Returning Customer</span>
+        </label>
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-4 border-t border-gray-200">
+        <button 
+          type="button" 
+          onClick={onCancel} 
+          disabled={pending}
+          className="px-5 py-2.5 rounded-lg text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+        >
           Cancel
         </button>
         <button
           type="button"
           onClick={submit}
           disabled={pending}
-          className="px-4 py-2 rounded text-sm font-semibold text-white disabled:opacity-60"
-          style={{ backgroundColor: "#3D2645" }}
+          className="px-5 py-2.5 rounded-lg text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 transition-colors disabled:opacity-60 shadow-sm"
         >
-          {pending ? "Saving…" : "Save Customer"}
+          {pending ? "Saving…" : initial ? "Update Customer" : "Save Customer"}
         </button>
       </div>
     </div>

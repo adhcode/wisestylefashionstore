@@ -1,9 +1,8 @@
 // WiseStyle data model.
 //
 // Role (User.role) and Payment.type are plain Strings, not Prisma enums:
-// SQLite has no native enum support, so the validated union types live in
-// the domain layer (src/domain/entities.ts) and are enforced by zod at the
-// service boundary instead.
+// The validated union types live in the domain layer (src/domain/entities.ts)
+// and are enforced by zod at the service boundary.
 
 generator client {
   provider = "prisma-client"
@@ -11,7 +10,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model User {
@@ -24,6 +23,9 @@ model User {
   tailor       Tailor? @relation(fields: [tailorId], references: [id])
 
   createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([role])
 }
 
 model Customer {
@@ -46,11 +48,21 @@ model Customer {
   interests        String?
   returning        Boolean @default(false)
   preferredStyleImage String?
+  measurements     String? // JSON-encoded measurements object
+
+  // Referral tracking
+  referrerId String?
+  referrer   Referrer? @relation(fields: [referrerId], references: [id])
 
   jobs Job[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([createdAt])
+  @@index([referrerId])
 }
 
 model Tailor {
@@ -99,17 +111,27 @@ model Job {
   contractPrice Float
   depositPaid   Float  @default(0)
   materials     String // JSON-encoded MaterialsState (see src/domain/entities.ts)
+  measurements  String? // JSON-encoded measurements object (overrides customer defaults)
 
   tailorId String?
   tailor   Tailor? @relation(fields: [tailorId], references: [id])
 
   progress Int     @default(0)
   notes    String?
+  
+  // Job completion satisfaction (1-5 stars, set when job is marked as completed)
+  satisfactionRating Int?
 
   payments Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([tailorId])
+  @@index([dateReceived])
+  @@index([completionDate])
+  @@index([createdAt])
 }
 
 model Payment {
@@ -124,4 +146,42 @@ model Payment {
   type   String // "payment" | "refund"
 
   createdAt DateTime @default(now())
+}
+
+model MaterialType {
+  id          String @id @default(cuid())
+  key         String @unique // lowercase_with_underscores identifier
+  label       String @unique // Display name (e.g., "Sewing Thread")
+  unit        String         // Unit of measurement (e.g., "pcs", "yards")
+  maxQuantity Int            // Maximum quantity allowed (1-100)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([label])
+}
+
+model Referrer {
+  id             String @id @default(cuid())
+  referrerNumber String @unique
+
+  name    String
+  phone   String
+  email   String?
+  address String?
+  
+  // Optional bank details for future commission payments
+  bankName          String?
+  accountName       String?
+  accountNumber     String?
+  
+  notes String?
+
+  customers Customer[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([phone])
+  @@index([createdAt])
 }

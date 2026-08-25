@@ -11,16 +11,14 @@ import type {
 } from "./entities";
 
 export function emptyMaterials(): MaterialsState {
-  const materials = {} as MaterialsState;
-  for (const def of MATERIALS_DEF) {
-    materials[def.key] = { included: false, qty: 1, cost: 0 };
-  }
-  return materials;
+  // Return empty object - materials are now loaded dynamically from database
+  // MaterialsSection component will handle displaying all available materials
+  return {};
 }
 
 export function materialTotal(materials: MaterialsState): number {
-  return MATERIALS_DEF.reduce((sum, def) => {
-    const entry = materials[def.key];
+  // Sum all materials dynamically (not relying on MATERIALS_DEF)
+  return Object.values(materials).reduce((sum, entry) => {
     if (entry?.included) return sum + entry.qty * entry.cost;
     return sum;
   }, 0);

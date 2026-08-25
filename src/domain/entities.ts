@@ -10,6 +10,8 @@ export type PaymentType = (typeof PAYMENT_TYPES)[number];
 export type JobStatus = "Pending" | "In Progress" | "Completed";
 
 export const MATERIAL_KEYS = [
+  "fabric",
+  "lining",
   "needle",
   "stay",
   "buttons",
@@ -27,7 +29,27 @@ export interface MaterialEntry {
   cost: number;
 }
 
-export type MaterialsState = Record<MaterialKey, MaterialEntry>;
+// Dynamic materials from database
+export interface MaterialType {
+  id: string;
+  key: string;
+  label: string;
+  unit: string;
+  maxQuantity: number;
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
+}
+
+export type MaterialTypeInput = Omit<
+  MaterialType,
+  "id" | "key" | "createdAt" | "updatedAt"
+>;
+
+// Updated to support dynamic material keys (string instead of MaterialKey)
+export type MaterialsState = Record<string, MaterialEntry>;
+
+// Measurements for a customer or job (e.g., {"Shoulder": 18, "Chest": 42})
+export type Measurements = Record<string, number>;
 
 export interface Customer {
   id: string;
@@ -48,6 +70,8 @@ export interface Customer {
   interests: string | null;
   returning: boolean;
   preferredStyleImage: string | null;
+  measurements: Measurements | null;
+  referrerId: string | null;
 }
 
 export type CustomerInput = Omit<Customer, "id" | "customerNumber">;
@@ -106,12 +130,14 @@ export interface Job {
   tailorName: string | null;
   progress: number;
   notes: string | null;
+  satisfactionRating: number | null;
   payments: Payment[];
+  measurements: Measurements | null;
 }
 
 export type JobInput = Omit<
   Job,
-  "id" | "jobNumber" | "customerName" | "tailorName" | "payments"
+  "id" | "jobNumber" | "customerName" | "tailorName" | "payments" | "satisfactionRating"
 >;
 
 export interface JobDerived {
@@ -155,3 +181,18 @@ export interface AuthUser {
   role: Role;
   tailorId: string | null;
 }
+
+export interface Referrer {
+  id: string;
+  referrerNumber: string;
+  name: string;
+  phone: string;
+  email: string | null;
+  address: string | null;
+  bankName: string | null;
+  accountName: string | null;
+  accountNumber: string | null;
+  notes: string | null;
+}
+
+export type ReferrerInput = Omit<Referrer, "id" | "referrerNumber">;

@@ -9,6 +9,8 @@ export interface TailorSummary {
   wageInfo: TailorWageInfo;
   jobsAssigned: number;
   jobsCompleted: number;
+  averageRating: number | null;
+  ratingCount: number;
 }
 
 export const tailorService = {
@@ -25,11 +27,20 @@ export const tailorService = {
     ]);
     return tailorsWithWages.map(({ tailor, wagePayments }) => {
       const theirJobs = jobs.filter((j) => j.tailorId === tailor.id);
+      const completedJobs = theirJobs.filter((j) => jobDerived(j).status === "Completed");
+      const ratedJobs = completedJobs.filter((j) => j.satisfactionRating !== null);
+      
+      const averageRating = ratedJobs.length > 0
+        ? ratedJobs.reduce((sum, j) => sum + (j.satisfactionRating || 0), 0) / ratedJobs.length
+        : null;
+      
       return {
         tailor,
         wageInfo: tailorWageInfo(tailor, jobs, wagePayments),
         jobsAssigned: theirJobs.length,
-        jobsCompleted: theirJobs.filter((j) => jobDerived(j).status === "Completed").length,
+        jobsCompleted: completedJobs.length,
+        averageRating,
+        ratingCount: ratedJobs.length,
       };
     });
   },
