@@ -20,6 +20,7 @@ async function getBrowser(): Promise<Browser> {
 
   // For Vercel/serverless environments
   if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+    console.log('[PDF] Using serverless Chromium');
     browserInstance = await puppeteer.launch({
       args: chromium.args,
       defaultViewport: { width: 1920, height: 1080 },
@@ -27,6 +28,7 @@ async function getBrowser(): Promise<Browser> {
       headless: true,
     });
   } else {
+    console.log('[PDF] Using local Chrome');
     // Local development - try to use system Chrome
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
       process.platform === 'darwin' 
@@ -52,14 +54,19 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
   let browser: Browser | null = null;
   
   try {
+    console.log('[PDF] Starting PDF generation');
     browser = await getBrowser();
+    console.log('[PDF] Browser launched successfully');
+    
     const page = await browser.newPage();
+    console.log('[PDF] New page created');
     
     // Set content and wait for it to load
     await page.setContent(html, { 
       waitUntil: 'domcontentloaded',
       timeout: 30000 
     });
+    console.log('[PDF] Content loaded');
     
     // Generate PDF
     const pdf = await page.pdf({
@@ -73,12 +80,14 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
       },
       timeout: 30000,
     });
+    console.log('[PDF] PDF generated successfully');
     
     await page.close();
     
     return pdf;
   } catch (error) {
-    console.error('PDF generation error:', error);
+    console.error('[PDF] PDF generation error:', error);
+    console.error('[PDF] Error stack:', error instanceof Error ? error.stack : 'No stack');
     throw new Error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
   } finally {
     // In serverless, we should close the browser after each request
@@ -87,6 +96,7 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
       if (browser) {
         await browser.close();
         browserInstance = null;
+        console.log('[PDF] Browser closed');
       }
     }
   }
