@@ -14,7 +14,7 @@ import { NextRequest } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const checks: Record<string, boolean> = {};
+  const checks: Record<string, boolean | number> = {};
   const warnings: string[] = [];
   
   // Check environment variables
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
   }
   
   const allPassed = Object.entries(checks)
-    .filter(([key]) => typeof checks[key] === 'boolean')
+    .filter(([key]) => key !== 'customersWithBirthdaysToday') // Exclude count from boolean check
     .every(([, value]) => value === true);
   
   return new Response(JSON.stringify({
