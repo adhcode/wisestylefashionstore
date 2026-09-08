@@ -10,6 +10,7 @@ import { addJobPayment } from "@/actions/job-actions";
 import { buildPaymentEntries, jobDerived } from "@/domain/calculations";
 import { formatCurrency, styleLabelOf } from "@/domain/format";
 import { STYLES } from "@/domain/constants";
+import { downloadReceipt } from "@/lib/download-pdf";
 import type { Job, JobStatus, PaymentType } from "@/domain/entities";
 
 export function PaymentsPanel({ jobs }: { jobs: Job[] }) {
@@ -276,14 +277,14 @@ export function PaymentsPanel({ jobs }: { jobs: Job[] }) {
                         Payment
                       </button>
                       {entries.length > 0 && (
-                        <a
-                          href={`/api/documents/receipt/${job.id}/${entries[entries.length - 1].id}`}
+                        <button
+                          onClick={() => downloadReceipt(job.id, entries[entries.length - 1].id)}
                           className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                           title="Download latest receipt"
                         >
                           <Download size={14} />
                           Receipt
-                        </a>
+                        </button>
                       )}
                     </div>
                   </td>

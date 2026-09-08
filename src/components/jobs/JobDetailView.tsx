@@ -13,6 +13,7 @@ import { deleteJob, updateJob, updateJobSatisfactionRating } from "@/actions/job
 import { jobDerived } from "@/domain/calculations";
 import { formatCurrency, styleLabelOf } from "@/domain/format";
 import { getMaterialLabel, getMaterialUnit, isMaterialDeleted, getUsedMaterialKeys } from "@/domain/material-helpers";
+import { downloadInvoice } from "@/lib/download-pdf";
 import type { Job, Customer, Tailor, MaterialType, JobStatus, PaymentLedgerEntry } from "@/domain/entities";
 
 interface JobDetailViewProps {
@@ -170,13 +171,13 @@ export function JobDetailView({
                     <Pencil size={18} className="text-gray-600" />
                   </button>
 
-                  <a 
-                    href={`/api/documents/invoice/${job.id}`}
+                  <button
+                    onClick={() => downloadInvoice(job.id)}
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     title="Download invoice"
                   >
                     <FileText size={18} className="text-purple-600" />
-                  </a>
+                  </button>
 
                   {isAdmin && (
                     <button
