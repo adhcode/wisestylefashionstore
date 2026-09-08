@@ -3,8 +3,8 @@ import { jobService } from "@/services/job-service";
 import { customerService } from "@/services/customer-service";
 import { buildPaymentEntries } from "@/domain/calculations";
 import { buildReceiptHTML } from "@/services/document-service";
+import { generatePDF } from "@/lib/pdf-generator";
 import { withRouteErrors } from "@/lib/api-errors";
-import puppeteer from "puppeteer";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ jobId: string; entryId: string }> }) {
   return withRouteErrors(async () => {
@@ -21,28 +21,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ job
 
     const html = buildReceiptHTML(job, customer, entry);
     const prefix = entry.type === "refund" ? "Refund" : "Receipt";
-    
-    // Launch Puppeteer to convert HTML to PDF
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20px',
-        right: '20px',
-        bottom: '20px',
-        left: '20px',
-      },
-    });
-    
-    await browser.close();
+    const pdf = await generatePDF(html);
     
     return new Response(Buffer.from(pdf), {
       headers: {
