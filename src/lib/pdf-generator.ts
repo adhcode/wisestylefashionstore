@@ -7,25 +7,10 @@
 
 import type { Browser, Page } from 'puppeteer-core';
 
-// Dynamic imports to avoid bundling issues
-let chromium: any = null;
-let puppeteer: any = null;
-
-async function loadDependencies() {
-  if (!puppeteer) {
-    puppeteer = await import('puppeteer-core');
-  }
-  if (!chromium && (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME)) {
-    chromium = await import('@sparticuz/chromium');
-  }
-}
-
 /**
  * Get browser instance for PDF generation
  */
 async function getBrowser(): Promise<Browser> {
-  await loadDependencies();
-  
   const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
   
   console.log('[PDF] Environment:', isServerless ? 'Serverless (Vercel)' : 'Local');
@@ -35,28 +20,19 @@ async function getBrowser(): Promise<Browser> {
   if (isServerless) {
     console.log('[PDF] Launching serverless Chromium...');
     
-    // Configure Chromium for serverless
+    // Dynamic import for serverless
+    const chromium = await import('@sparticuz/chromium');
+    const puppeteer = await import('puppeteer-core');
+    
+    // Get executable path
     const executablePath = await chromium.default.executablePath();
     console.log('[PDF] Chromium executable:', executablePath);
     
     const browser = await puppeteer.default.launch({
-      args: [
-        ...chromium.default.args,
-        '--disable-gpu',
-        '--disable-dev-shm-usage',
-        '--disable-setuid-sandbox',
-        '--no-first-run',
-        '--no-sandbox',
-        '--no-zygote',
-        '--single-process',
-      ],
-      defaultViewport: {
-        width: 1920,
-        height: 1080,
-      },
+      args: chromium.default.args,
+      defaultViewport: chromium.default.defaultViewport,
       executablePath,
-      headless: true,
-      ignoreHTTPSErrors: true,
+      headless: chromium.default.headless,
     });
     
     console.log('[PDF] Browser launched successfully');
@@ -64,6 +40,8 @@ async function getBrowser(): Promise<Browser> {
   } else {
     // Local development
     console.log('[PDF] Launching local Chrome...');
+    
+    const puppeteer = await import('puppeteer-core');
     
     const executablePath = process.env.PUPPETEER_EXECUTABLE_PATH || 
       (process.platform === 'darwin' 
@@ -150,8 +128,8 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
     if (error instanceof Error) {
       if (error.message.includes('timeout')) {
         throw new Error('PDF generation timeout - the document took too long to render');
-      } else if (error.message.includes('executable')) {
-        throw new Error('Chrome executable not found - please check Chromium installation');
+      } else if (error.message.includes('executable') || error.message.includes('brotli')) {
+        throw new Error('Chromium not properly installed - please check Vercel deployment');
       } else if (error.message.includes('memory')) {
         throw new Error('Out of memory - PDF generation requires more resources');
       }

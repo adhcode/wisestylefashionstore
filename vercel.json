@@ -10,5 +10,8 @@
       "path": "/api/cron/birthday-emails",
       "schedule": "0 8 * * *"
     }
-  ]
+  ],
+  "env": {
+    "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
+  }
 }
