@@ -1,10 +1,23 @@
 # WiseStyle Fashion Store
 
-A Next.js application for managing a fashion tailoring business, featuring job tracking, customer management, and tailor coordination.
+A Next.js application for managing a fashion tailoring business, featuring job tracking, customer management, tailor coordination, and automated birthday emails.
+
+## Features
+
+- 👔 Job tracking and management
+- 👥 Customer relationship management
+- ✂️ Tailor coordination and wage tracking
+- 📊 Financial reporting and analytics
+- 📄 Invoice and receipt generation (PDF)
+- 🎂 **Automated birthday emails** (Free!)
+- 📱 Responsive mobile-first design
+- 🔐 Role-based access control
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
+
+### Development Setup
 
 First, run the development server:
 
@@ -23,6 +36,44 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
+```
+
+Required variables:
+- `DATABASE_URL` - PostgreSQL connection string
+- `AUTH_SECRET` - NextAuth secret (generate with `openssl rand -base64 32`)
+- `RESEND_API_KEY` - For birthday emails (from resend.com)
+- `FROM_EMAIL` - Email sender address
+- `CRON_SECRET` - Cron job authentication (generate with `openssl rand -base64 32`)
+
+## Automated Birthday Emails 🎂
+
+WiseStyle automatically sends personalized birthday emails to customers on their special day.
+
+**Quick Setup:** See `QUICK_START_BIRTHDAY_EMAILS.md` for 10-minute setup guide.
+
+**Features:**
+- ✅ Runs daily at 8:00 AM UTC (9:00 AM WAT)
+- ✅ Beautiful HTML email templates with WiseStyle branding
+- ✅ No duplicate emails (tracks last sent date)
+- ✅ **100% Free** (Vercel Cron + Resend free tier)
+- ✅ Zero maintenance required
+
+**Documentation:**
+- `QUICK_START_BIRTHDAY_EMAILS.md` - Fast setup guide
+- `BIRTHDAY_EMAIL_PRODUCTION_CHECKLIST.md` - Detailed production guide
+- `VERCEL_CRON_TESTING.md` - Testing instructions
+
+**Health Check:**
+```bash
+curl https://your-app.vercel.app/api/health/birthday-cron
+```
 
 ## Custom UI Components
 

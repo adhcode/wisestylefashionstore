@@ -1,5 +1,38 @@
 # Vercel Cron Job Testing Guide
 
+## Quick Health Check (Start Here!)
+
+Before diving into full testing, verify your system is configured correctly:
+
+```bash
+curl https://your-app.vercel.app/api/health/birthday-cron
+```
+
+**Expected Response:**
+```json
+{
+  "status": "healthy",
+  "checks": {
+    "resendApiKey": true,
+    "fromEmail": true,
+    "cronSecret": true,
+    "database": true,
+    "customersWithBirthdaysToday": 0,
+    "resendModule": true
+  },
+  "config": {
+    "cronSchedule": "0 8 * * * (Daily at 8:00 AM UTC)",
+    "cronEndpoint": "/api/cron/birthday-emails",
+    "fromEmail": "noreply@wisestylefashion.com",
+    "replyToEmail": "noreply@wisestylefashion.com"
+  }
+}
+```
+
+If status is "degraded" or any checks are `false`, see the warnings array for what needs to be fixed.
+
+---
+
 ## Prerequisites Checklist
 
 Before testing, ensure these are set in Vercel:
