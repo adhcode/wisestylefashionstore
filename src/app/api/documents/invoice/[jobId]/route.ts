@@ -5,9 +5,9 @@ import { buildInvoiceHTML } from "@/services/document-service";
 import { generatePDF } from "@/lib/pdf-generator";
 import { withRouteErrors } from "@/lib/api-errors";
 
-// Configure route for PDF generation
+// Configure route for PDF generation (Hobby plan limits)
 export const dynamic = 'force-dynamic';
-export const maxDuration = 60;
+export const maxDuration = 10; // Hobby plan limit
 
 export async function GET(_request: Request, { params }: { params: Promise<{ jobId: string }> }) {
   return withRouteErrors(async () => {

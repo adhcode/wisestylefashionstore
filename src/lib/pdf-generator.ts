@@ -1,8 +1,8 @@
 /**
- * PDF Generator for Serverless Environments
+ * PDF Generator for Serverless Environments (Optimized for Hobby Plan)
  * 
- * This module provides PDF generation that works on Vercel and other serverless platforms.
- * It uses puppeteer-core with @sparticuz/chromium for serverless compatibility.
+ * This module provides PDF generation that works on Vercel Free/Hobby plan.
+ * Optimized to work within 1024MB memory limit.
  */
 
 import type { Browser, Page } from 'puppeteer-core';
@@ -14,22 +14,32 @@ async function getBrowser(): Promise<Browser> {
   const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME;
   
   console.log('[PDF] Environment:', isServerless ? 'Serverless (Vercel)' : 'Local');
-  console.log('[PDF] Node version:', process.version);
-  console.log('[PDF] Platform:', process.platform);
   
   if (isServerless) {
-    console.log('[PDF] Launching serverless Chromium...');
+    console.log('[PDF] Launching serverless Chromium (memory optimized)...');
     
     // Dynamic import for serverless
     const chromium = await import('@sparticuz/chromium');
     const puppeteer = await import('puppeteer-core');
     
-    // Get executable path
+    // Optimize for low memory on Hobby plan
+    chromium.default.setHeadlessMode = true;
+    chromium.default.setGraphicsMode = false;
+    
     const executablePath = await chromium.default.executablePath();
     console.log('[PDF] Chromium executable:', executablePath);
     
     const browser = await puppeteer.default.launch({
-      args: chromium.default.args,
+      args: [
+        ...chromium.default.args,
+        '--disable-dev-shm-usage', // Use /tmp instead of /dev/shm
+        '--disable-gpu',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-web-security',
+        '--disable-features=IsolateOrigins,site-per-process',
+        '--single-process', // Critical for low memory
+      ],
       defaultViewport: chromium.default.defaultViewport,
       executablePath,
       headless: chromium.default.headless,
@@ -50,8 +60,6 @@ async function getBrowser(): Promise<Browser> {
         ? '/usr/bin/google-chrome'
         : 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
     
-    console.log('[PDF] Chrome executable:', executablePath);
-    
     const browser = await puppeteer.default.launch({
       headless: true,
       executablePath,
@@ -64,7 +72,7 @@ async function getBrowser(): Promise<Browser> {
 }
 
 /**
- * Generate a PDF from HTML string
+ * Generate a PDF from HTML string (Memory optimized)
  */
 export async function generatePDF(html: string): Promise<Uint8Array> {
   const startTime = Date.now();
@@ -82,22 +90,22 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
     page = await browser.newPage();
     console.log('[PDF] New page created');
     
-    // Set a reasonable viewport
+    // Set smaller viewport to save memory
     await page.setViewport({
-      width: 1920,
-      height: 1080,
+      width: 1280,
+      height: 720,
     });
     
-    // Set content with timeout
+    // Set content with shorter timeout for Hobby plan
     const contentStart = Date.now();
     await page.setContent(html, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000,
+      waitUntil: 'domcontentloaded', // Faster than networkidle0
+      timeout: 10000, // 10 seconds for Hobby plan
     });
     const contentTime = Date.now() - contentStart;
     console.log('[PDF] Content loaded in:', contentTime, 'ms');
     
-    // Generate PDF
+    // Generate PDF with optimized settings
     const pdfStart = Date.now();
     const pdf = await page.pdf({
       format: 'A4',
@@ -108,7 +116,8 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
         bottom: '20px',
         left: '20px',
       },
-      timeout: 30000,
+      timeout: 10000, // 10 seconds for Hobby plan
+      preferCSSPageSize: false, // Reduce processing
     });
     const pdfTime = Date.now() - pdfStart;
     console.log('[PDF] PDF generated in:', pdfTime, 'ms');
@@ -120,24 +129,22 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
     return pdf;
   } catch (error) {
     console.error('[PDF] PDF generation error:', error);
-    console.error('[PDF] Error name:', error instanceof Error ? error.name : 'Unknown');
     console.error('[PDF] Error message:', error instanceof Error ? error.message : 'Unknown');
-    console.error('[PDF] Error stack:', error instanceof Error ? error.stack : 'No stack');
     
     // Provide more specific error messages
     if (error instanceof Error) {
       if (error.message.includes('timeout')) {
-        throw new Error('PDF generation timeout - the document took too long to render');
+        throw new Error('PDF generation timeout - try simplifying the document');
       } else if (error.message.includes('executable') || error.message.includes('brotli')) {
-        throw new Error('Chromium not properly installed - please check Vercel deployment');
-      } else if (error.message.includes('memory')) {
-        throw new Error('Out of memory - PDF generation requires more resources');
+        throw new Error('Chromium not available - check Vercel configuration');
+      } else if (error.message.includes('memory') || error.message.includes('out of memory')) {
+        throw new Error('Out of memory - PDF generation requires Pro plan for complex documents');
       }
     }
     
     throw new Error(`Failed to generate PDF: ${error instanceof Error ? error.message : 'Unknown error'}`);
   } finally {
-    // Clean up
+    // Aggressive cleanup for memory management
     try {
       if (page) {
         await page.close();
@@ -149,6 +156,11 @@ export async function generatePDF(html: string): Promise<Uint8Array> {
       }
     } catch (cleanupError) {
       console.error('[PDF] Cleanup error:', cleanupError);
+    }
+    
+    // Force garbage collection hint
+    if (global.gc) {
+      global.gc();
     }
   }
 }
