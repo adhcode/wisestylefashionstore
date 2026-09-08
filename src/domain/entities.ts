@@ -59,6 +59,7 @@ export interface Customer {
   phone: string;
   whatsapp: string | null;
   email: string | null;
+  birthdate: string | null; // ISO date (yyyy-mm-dd)
   address: string | null;
   state: string | null;
   city: string | null;
@@ -72,9 +73,10 @@ export interface Customer {
   preferredStyleImage: string | null;
   measurements: Measurements | null;
   referrerId: string | null;
+  lastBirthdayEmailSent: string | null; // ISO timestamp
 }
 
-export type CustomerInput = Omit<Customer, "id" | "customerNumber">;
+export type CustomerInput = Omit<Customer, "id" | "customerNumber" | "lastBirthdayEmailSent">;
 
 export interface Tailor {
   id: string;

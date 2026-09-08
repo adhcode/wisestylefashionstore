@@ -37,6 +37,7 @@ model Customer {
   phone            String
   whatsapp         String?
   email            String?
+  birthdate        DateTime? // Customer's date of birth
   address          String?
   state            String?
   city             String?
@@ -49,6 +50,7 @@ model Customer {
   returning        Boolean @default(false)
   preferredStyleImage String?
   measurements     String? // JSON-encoded measurements object
+  lastBirthdayEmailSent DateTime? // Track when we last sent birthday email
 
   // Referral tracking
   referrerId String?
@@ -63,6 +65,7 @@ model Customer {
   @@index([phone])
   @@index([createdAt])
   @@index([referrerId])
+  @@index([birthdate])
 }
 
 model Tailor {

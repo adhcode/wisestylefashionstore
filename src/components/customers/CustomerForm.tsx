@@ -17,6 +17,7 @@ function toFormState(customer: Customer | null): CustomerInput {
       phone: customer.phone,
       whatsapp: customer.whatsapp,
       email: customer.email,
+      birthdate: customer.birthdate,
       address: customer.address,
       state: customer.state,
       city: customer.city,
@@ -38,6 +39,7 @@ function toFormState(customer: Customer | null): CustomerInput {
     phone: "",
     whatsapp: null,
     email: null,
+    birthdate: null,
     address: null,
     state: null,
     city: null,
@@ -222,6 +224,18 @@ export function CustomerForm({
             placeholder="e.g., customer@example.com"
           />
         </Field>
+        <Field label="Date of Birth">
+          <input 
+            type="date"
+            className={inputCls} 
+            value={form.birthdate ?? ""} 
+            onChange={(e) => set("birthdate", e.target.value)}
+          />
+          <p className="text-xs text-gray-500 mt-1">We'll send a birthday greeting</p>
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <Field label="Occupation">
           <input 
             className={inputCls} 
@@ -229,6 +243,20 @@ export function CustomerForm({
             onChange={(e) => set("occupation", e.target.value)}
             placeholder="e.g., Business Owner"
           />
+        </Field>
+        <Field label="Referrer (Optional)">
+          <select
+            className={inputCls}
+            value={form.referrerId ?? ""}
+            onChange={(e) => set("referrerId", e.target.value || null)}
+          >
+            <option value="">None</option>
+            {referrers.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name} ({r.phone})
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
 

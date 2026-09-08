@@ -22,6 +22,7 @@ export const customerSchema = z.object({
   phone: requiredText,
   whatsapp: optionalText,
   email: optionalText,
+  birthdate: optionalText, // ISO date string (yyyy-mm-dd)
   address: optionalText,
   state: optionalText,
   city: optionalText,

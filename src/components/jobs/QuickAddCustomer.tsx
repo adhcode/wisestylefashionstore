@@ -42,6 +42,7 @@ export function QuickAddCustomer({ onSuccess, onCancel }: QuickAddCustomerProps)
       phone: phone.trim(),
       whatsapp: phone.trim(),
       email: email.trim() || null,
+      birthdate: null,
       address: null,
       state: null,
       city: null,

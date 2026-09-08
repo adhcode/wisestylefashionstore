@@ -12,6 +12,7 @@ function toDomain(row: CustomerModel): Customer {
     phone: row.phone,
     whatsapp: row.whatsapp,
     email: row.email,
+    birthdate: row.birthdate ? row.birthdate.toISOString().split('T')[0] : null,
     address: row.address,
     state: row.state,
     city: row.city,
@@ -25,6 +26,7 @@ function toDomain(row: CustomerModel): Customer {
     preferredStyleImage: row.preferredStyleImage,
     measurements: row.measurements ? JSON.parse(row.measurements) : null,
     referrerId: row.referrerId,
+    lastBirthdayEmailSent: row.lastBirthdayEmailSent ? row.lastBirthdayEmailSent.toISOString() : null,
   };
 }
 
@@ -46,6 +48,7 @@ export const customerRepository = {
         ...input, 
         customerNumber: "CU-" + pad(count + 1),
         measurements: input.measurements ? JSON.stringify(input.measurements) : null,
+        birthdate: input.birthdate ? new Date(input.birthdate) : null,
       },
     });
     return toDomain(row);
@@ -57,9 +60,35 @@ export const customerRepository = {
       data: {
         ...input,
         measurements: input.measurements ? JSON.stringify(input.measurements) : null,
+        birthdate: input.birthdate ? new Date(input.birthdate) : null,
       },
     });
     return toDomain(row);
+  },
+
+  async findBirthdaysToday(): Promise<Customer[]> {
+    const today = new Date();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    
+    // Find customers whose birthday is today (month and day match)
+    const rows = await prisma.$queryRaw<CustomerModel[]>`
+      SELECT * FROM "Customer"
+      WHERE "birthdate" IS NOT NULL
+        AND EXTRACT(MONTH FROM "birthdate") = ${month}
+        AND EXTRACT(DAY FROM "birthdate") = ${day}
+        AND "email" IS NOT NULL
+        AND ("lastBirthdayEmailSent" IS NULL OR DATE("lastBirthdayEmailSent") < CURRENT_DATE)
+    `;
+    
+    return rows.map(toDomain);
+  },
+
+  async markBirthdayEmailSent(id: string): Promise<void> {
+    await prisma.customer.update({
+      where: { id },
+      data: { lastBirthdayEmailSent: new Date() },
+    });
   },
 
   async remove(id: string): Promise<void> {
